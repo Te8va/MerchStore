@@ -1,0 +1,8 @@
+# Log files
+*.log
+
+# .env file
+.env
+
+# Temp log file
+abc_tmp.txt

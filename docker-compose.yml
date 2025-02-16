@@ -1,0 +1,65 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    container_name: merch-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./merch-db:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    command: [ "postgres", "-c", "log_statement=all" ]
+
+    networks:
+      - app-network
+ 
+  db-e2e:
+    image: postgres:16
+    container_name: test-db-e2e
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./test-db-e2e:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_E2E_PORT}:${POSTGRES_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    command: [ "postgres", "-c", "log_statement=all" ]
+    profiles:
+      - e2e
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: merch
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+    - POSTGRES_CONN=postgres://merch:merch@merch-db:5432/merch?sslmode=disable
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
